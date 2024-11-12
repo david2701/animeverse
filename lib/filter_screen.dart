@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class FilterScreen extends StatefulWidget {
+class FilterScreen extends ConsumerStatefulWidget {
+  const FilterScreen({Key? key}) : super(key: key);
+
   @override
-  _FilterScreenState createState() => _FilterScreenState();
+  ConsumerState<FilterScreen> createState() => _FilterScreenState();
 }
 
-class _FilterScreenState extends State<FilterScreen> {
+class _FilterScreenState extends ConsumerState<FilterScreen> {
   List<String> selectedTypes = [];
   List<String> selectedGenres = [];
   RangeValues selectedYearRange = RangeValues(1950, 2024);
@@ -75,145 +78,268 @@ class _FilterScreenState extends State<FilterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Filter Animes')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Tipo', style: TextStyle(fontWeight: FontWeight.bold)),
-            Wrap(
-              spacing: 8.0,
-              children: types.map((type) {
-                final isSelected = selectedTypes.contains(type['value']);
-                return FilterChip(
-                  label: Text(type['label']!),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      isSelected
-                          ? selectedTypes.remove(type['value'])
-                          : selectedTypes.add(type['value']!);
-                    });
-                  },
-                );
-              }).toList(),
+            _buildHeader(),
+            _buildFilterSection(
+              title: 'Tipo',
+              child: _buildTypeFilters(),
             ),
-            SizedBox(height: 20),
-
-            Text('Género', style: TextStyle(fontWeight: FontWeight.bold)),
-            Wrap(
-              spacing: 8.0,
-              children: genres.map((genre) {
-                final isSelected = selectedGenres.contains(genre['value']);
-                return FilterChip(
-                  label: Text(genre['label']!),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      isSelected
-                          ? selectedGenres.remove(genre['value'])
-                          : selectedGenres.add(genre['value']!);
-                    });
-                  },
-                );
-              }).toList(),
+            _buildFilterSection(
+              title: 'Género',
+              child: _buildGenreFilters(),
             ),
-            SizedBox(height: 20),
-
-            Text('Año', style: TextStyle(fontWeight: FontWeight.bold)),
-            RangeSlider(
-              values: selectedYearRange,
-              min: 1950,
-              max: 2024,
-              divisions: 74,
-              labels: RangeLabels(
-                selectedYearRange.start.round().toString(),
-                selectedYearRange.end.round().toString(),
-              ),
-              onChanged: (RangeValues values) {
-                setState(() {
-                  selectedYearRange = values;
-                });
-              },
+            _buildFilterSection(
+              title: 'Año',
+              child: _buildYearFilter(),
             ),
-            SizedBox(height: 20),
-
-            Text('Estado', style: TextStyle(fontWeight: FontWeight.bold)),
-            DropdownButtonFormField<String>(
-              items: statuses.map((status) {
-                return DropdownMenuItem(
-                  value: status['value'],
-                  child: Text(status['label']!),
-                );
-              }).toList(),
-              value: selectedStatus,
-              onChanged: (value) {
-                setState(() {
-                  selectedStatus = value;
-                });
-              },
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Seleccionar Estado',
-              ),
+            _buildFilterSection(
+              title: 'Estado',
+              child: _buildStatusFilter(),
             ),
-            SizedBox(height: 20),
-
-            Text('Ordenar', style: TextStyle(fontWeight: FontWeight.bold)),
-            DropdownButtonFormField<String>(
-              items: sortOptions.map((option) {
-                return DropdownMenuItem(
-                  value: option['value'],
-                  child: Text(option['label']!),
-                );
-              }).toList(),
-              value: selectedSortOrder,
-              onChanged: (value) {
-                setState(() {
-                  selectedSortOrder = value;
-                });
-              },
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Seleccionar Orden',
-              ),
+            _buildFilterSection(
+              title: 'Ordenar por',
+              child: _buildSortFilter(),
             ),
-            SizedBox(height: 20),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    // Aplica los filtros y regresa con los datos seleccionados
-                    Navigator.pop(context, {
-                      'types': selectedTypes,
-                      'genres': selectedGenres,
-                      'yearRange': selectedYearRange,
-                      'status': selectedStatus,
-                      'sortOrder': selectedSortOrder,
-                    });
-                  },
-                  child: Text('Buscar'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      selectedTypes.clear();
-                      selectedGenres.clear();
-                      selectedYearRange = RangeValues(1950, 2024);
-                      selectedStatus = null;
-                      selectedSortOrder = null;
-                    });
-                  },
-                  child: Text('Limpiar', style: TextStyle(color: Colors.grey)),
-                ),
-              ],
-            ),
+            _buildActionButtons(),
+            const SizedBox(height: 16),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Filtros',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    selectedTypes.clear();
+                    selectedGenres.clear();
+                    selectedYearRange = RangeValues(1950, 2024);
+                    selectedStatus = null;
+                    selectedSortOrder = null;
+                  });
+                },
+                child: const Text('Limpiar todo'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterSection({required String title, required Widget child}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          child,
+          const Divider(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTypeFilters() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: types.map((type) {
+        final isSelected = selectedTypes.contains(type['value']);
+        return FilterChip(
+          label: Text(type['label']!),
+          selected: isSelected,
+          onSelected: (selected) {
+            setState(() {
+              if (selected) {
+                selectedTypes.add(type['value']!);
+              } else {
+                selectedTypes.remove(type['value']);
+              }
+            });
+          },
+          selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+          checkmarkColor: Theme.of(context).primaryColor,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildGenreFilters() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: genres.map((genre) {
+        final isSelected = selectedGenres.contains(genre['value']);
+        return FilterChip(
+          label: Text(genre['label']!),
+          selected: isSelected,
+          onSelected: (selected) {
+            setState(() {
+              if (selected) {
+                selectedGenres.add(genre['value']!);
+              } else {
+                selectedGenres.remove(genre['value']);
+              }
+            });
+          },
+          selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+          checkmarkColor: Theme.of(context).primaryColor,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildYearFilter() {
+    return Column(
+      children: [
+        RangeSlider(
+          values: selectedYearRange,
+          min: 1950,
+          max: 2024,
+          divisions: 74,
+          labels: RangeLabels(
+            selectedYearRange.start.round().toString(),
+            selectedYearRange.end.round().toString(),
+          ),
+          onChanged: (RangeValues values) {
+            setState(() {
+              selectedYearRange = values;
+            });
+          },
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                selectedYearRange.start.round().toString(),
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              Text(
+                selectedYearRange.end.round().toString(),
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusFilter() {
+    return DropdownButtonFormField<String>(
+      value: selectedStatus,
+      decoration: InputDecoration(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        hintText: 'Seleccionar estado',
+      ),
+      items: statuses.map((status) {
+        return DropdownMenuItem(
+          value: status['value'],
+          child: Text(status['label']!),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          selectedStatus = value;
+        });
+      },
+    );
+  }
+
+  Widget _buildSortFilter() {
+    return DropdownButtonFormField<String>(
+      value: selectedSortOrder,
+      decoration: InputDecoration(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        hintText: 'Seleccionar orden',
+      ),
+      items: sortOptions.map((option) {
+        return DropdownMenuItem(
+          value: option['value'],
+          child: Text(option['label']!),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          selectedSortOrder = value;
+        });
+      },
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  'types': selectedTypes,
+                  'genres': selectedGenres,
+                  'yearRange': selectedYearRange,
+                  'status': selectedStatus,
+                  'sortOrder': selectedSortOrder,
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Aplicar filtros'),
+            ),
+          ),
+        ],
       ),
     );
   }

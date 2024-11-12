@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:html/dom.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html;
 import 'dart:convert';
-import 'model_anime.dart';
+import 'models/model_anime.dart';
 
 class AnimeScraperService {
   // Encabezados HTTP para simular una solicitud de navegador
@@ -14,6 +15,17 @@ class AnimeScraperService {
     'Accept-Language': 'es-ES,es;q=0.9',
     'Connection': 'keep-alive',
   };
+
+  Future<int> getLastModifiedTimestamp() async {
+    try {
+      // Por ahora, simplemente devolvemos el timestamp actual
+      // En una implementación real, esto vendría del servidor
+      return DateTime.now().millisecondsSinceEpoch;
+    } catch (e) {
+      debugPrint('Error obteniendo timestamp de modificación: $e');
+      return 0;
+    }
+  }
 
   /// Método para obtener todos los animes de un directorio específico.
   /// [page]: número de página para la paginación del directorio.

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'model_anime.dart';
+import 'models/model_anime.dart';
 import 'video_player_screen.dart';
 
 class EpisodeListScreen extends StatelessWidget {

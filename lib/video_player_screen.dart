@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'model_anime.dart';
+import 'models/model_anime.dart';
 
 class VideoPlayerScreen extends StatelessWidget {
   final Episode episode;

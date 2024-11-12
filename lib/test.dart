@@ -1,6 +1,6 @@
 import 'package:animeverse/scraping_services.dart';
 import 'package:flutter/material.dart';
-import 'model_anime.dart';
+import 'models/model_anime.dart';
 
 class AnimeFetcherScreen extends StatefulWidget {
   @override
