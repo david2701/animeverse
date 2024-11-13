@@ -25,7 +25,6 @@ class _AnimeCardWidgetState extends ConsumerState<AnimeCardWidget> {
   @override
   Widget build(BuildContext context) {
     final animeStatus = ref.watch(animeStatusProvider(widget.anime.id));
-    final userDataBox = ref.watch(userDataBoxProvider);
 
     return Card(
       elevation: 3,
@@ -36,8 +35,9 @@ class _AnimeCardWidgetState extends ConsumerState<AnimeCardWidget> {
       child: InkWell(
         onTap: () => _navigateToDetail(context),
         child: Column(
+          mainAxisSize: MainAxisSize.min, // Ajuste aquí
           children: [
-            // Contenedor de imagen - 65% de altura
+            // Contenedor de imagen
             Expanded(
               flex: 65,
               child: Stack(
@@ -50,11 +50,8 @@ class _AnimeCardWidgetState extends ConsumerState<AnimeCardWidget> {
                 ],
               ),
             ),
-            // Contenedor de información - 35% de altura
-            Expanded(
-              flex: 35,
-              child: _buildCardInfo(context),
-            ),
+            // Contenedor de información sin Expanded
+            _buildCardInfo(context), // Ajuste aquí
           ],
         ),
       ),
@@ -69,7 +66,8 @@ class _AnimeCardWidgetState extends ConsumerState<AnimeCardWidget> {
           image: DecorationImage(
             image: NetworkImage(widget.anime.coverImageUrl),
             fit: BoxFit.cover,
-            onError: (_, __) => const AssetImage('assets/placeholder.png'),
+            onError: (_, __) =>
+            const AssetImage('assets/placeholder.png') as ImageProvider,
           ),
         ),
       ),
@@ -134,37 +132,33 @@ class _AnimeCardWidgetState extends ConsumerState<AnimeCardWidget> {
       padding: const EdgeInsets.all(8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, // Ajuste aquí
         children: [
-          // Título y géneros con altura limitada
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.anime.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  widget.anime.genres.take(2).join(' • '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                    fontSize: 10,
-                  ),
-                ),
-              ],
+          Text(
+            widget.anime.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              height: 1.2,
             ),
           ),
-          // Tipo y año
+          const SizedBox(height: 2),
+          Text(
+            widget.anime.genres.take(2).join(' • '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.color
+                  ?.withOpacity(0.7),
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 4),
           Row(
             children: [
               _buildTypeTag(context),
@@ -173,7 +167,11 @@ class _AnimeCardWidgetState extends ConsumerState<AnimeCardWidget> {
                 widget.anime.year,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontSize: 10,
-                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.8),
+                  color: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.color
+                      ?.withOpacity(0.8),
                 ),
               ),
             ],
@@ -204,7 +202,7 @@ class _AnimeCardWidgetState extends ConsumerState<AnimeCardWidget> {
   void _navigateToDetail(BuildContext context) async {
     final userDataBox = ref.read(userDataBoxProvider);
     if (userDataBox != null) {
-      final result = await Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => AnimeDetailScreen(

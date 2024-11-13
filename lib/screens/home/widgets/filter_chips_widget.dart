@@ -19,7 +19,10 @@ class FilterChipsWidget extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            _buildFilterChip(context, ref, 'All', selectedGenres.isEmpty),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _buildFilterChip(context, ref, 'All', selectedGenres.isEmpty),
+            ),
             ..._buildGenreChips(context, ref, selectedGenres),
           ],
         ),
@@ -62,25 +65,27 @@ class FilterChipsWidget extends ConsumerWidget {
       BuildContext context,
       WidgetRef ref,
       String label,
-      bool selected,
+      bool isSelected,
       ) {
-    return FilterChip(
-      selected: selected,
+    return ChoiceChip(
       label: Text(label),
       labelStyle: TextStyle(
-        color: selected ? Colors.white : Theme.of(context).colorScheme.primary,
-        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+        color: isSelected
+            ? Colors.white
+            : Theme.of(context).textTheme.bodyLarge?.color,
+        fontWeight: FontWeight.w500,
       ),
-      backgroundColor: Theme.of(context).chipTheme.backgroundColor,
+      selected: isSelected,
       selectedColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: Theme.of(context).chipTheme.backgroundColor,
       onSelected: (bool selected) => _onFilterSelected(ref, label, selected),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: selected
-              ? Colors.transparent
-              : Theme.of(context).colorScheme.primary.withOpacity(0.2),
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).dividerColor,
+          width: 1,
         ),
       ),
     );

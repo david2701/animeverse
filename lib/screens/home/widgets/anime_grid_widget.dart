@@ -71,7 +71,7 @@ class AnimeGridWidget extends ConsumerWidget {
               crossAxisCount: _calculateCrossAxisCount(context),
               childAspectRatio: 0.7,
               mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
+              crossAxisSpacing: 6,
             ),
             itemCount: animes.length,
             itemBuilder: (context, index) {

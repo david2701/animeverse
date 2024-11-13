@@ -56,33 +56,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Row(
-          children: [
-            if (isTablet) const SideMenuWidget(),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  // Reiniciar la lista
-                  ref.invalidate(animeListProvider);
-                  // Resetear la página
-                  ref.read(currentPageProvider.notifier).state = 1;
-                  // Resetear el estado de carga
-                  ref.read(hasMoreContentProvider.notifier).state = true;
-                },
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  slivers: const [
-                    HomeAppBarWidget(),
-                    FilterChipsWidget(),
-                    FeaturedAnimeWidget(),
-                    AnimeGridWidget(),
-                  ],
-                ),
+      body: Row(
+        children: [
+          if (isTablet) const SideMenuWidget(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                // Reiniciar la lista
+                ref.invalidate(animeListProvider);
+                // Resetear la página
+                ref.read(currentPageProvider.notifier).state = 1;
+                // Resetear el estado de carga
+                ref.read(hasMoreContentProvider.notifier).state = true;
+              },
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: const [
+                  HomeAppBarWidget(),
+                  FilterChipsWidget(),
+                  FeaturedAnimeWidget(),
+                  AnimeGridWidget(),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

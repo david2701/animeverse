@@ -16,51 +16,42 @@ class _HomeAppBarWidgetState extends ConsumerState<HomeAppBarWidget> {
   @override
   Widget build(BuildContext context) {
     final isSearchVisible = ref.watch(isSearchVisibleProvider);
-    final isTablet = MediaQuery.of(context).size.width >= 768;
 
     return SliverAppBar(
-      expandedHeight: isSearchVisible ? 80 : 120,
       floating: true,
       pinned: true,
       elevation: 0,
       backgroundColor: Theme.of(context).primaryColor,
-      flexibleSpace: FlexibleSpaceBar(
-        title: isSearchVisible
-            ? _buildSearchField()
-            : Text(
-          'AnimeVerse',
-          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-            color: Colors.white,
-          ),
-        ),
-        titlePadding: EdgeInsets.only(
-          left: isTablet ? 32 : 16,
-          bottom: 16,
-          right: 16,
-        ),
-      ),
+      title: isSearchVisible ? _buildSearchField() : _buildTitle(),
+      centerTitle: true,
       actions: _buildActions(),
+    );
+  }
+
+  Widget _buildTitle() {
+    return Text(
+      'AnimeVerse',
+      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+        color: Colors.white,
+      ),
     );
   }
 
   Widget _buildSearchField() {
     return Container(
-      width: 300,
       height: 40,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
       child: TextField(
         controller: _searchController,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          hintText: 'Search anime...',
+          hintText: 'Buscar anime...',
           hintStyle: const TextStyle(color: Colors.white70),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide.none,
           ),
           filled: true,
-          fillColor: Colors.white.withOpacity(0.2),
-          prefixIcon: const Icon(Icons.search, color: Colors.white70),
+          fillColor: Colors.white24,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
         ),
         onChanged: (value) {
@@ -85,7 +76,7 @@ class _HomeAppBarWidgetState extends ConsumerState<HomeAppBarWidget> {
         icon: const Icon(Icons.filter_list, color: Colors.white),
         onPressed: () => _showFilterBottomSheet(context),
       ),
-      const SizedBox(width: 16),
+      const SizedBox(width: 8),
     ];
   }
 
