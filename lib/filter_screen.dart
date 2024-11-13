@@ -1,3 +1,5 @@
+// lib/screens/filter/filter_screen.dart
+import 'package:animeverse/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,65 +18,76 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
   String? selectedSortOrder;
 
   final List<Map<String, String>> types = [
-    {'value': '0', 'label': 'TV'},
-    {'value': '1', 'label': 'Película'},
-    {'value': '2', 'label': 'OVA'},
-    {'value': '3', 'label': 'Especial'},
+    {'value': 'TV', 'label': 'TV'},
+    {'value': 'Película', 'label': 'Película'},
+    {'value': 'OVA', 'label': 'OVA'},
+    {'value': 'Especial', 'label': 'Especial'},
   ];
 
   final List<Map<String, String>> genres = [
-    {'value': 'accion', 'label': 'Acción'},
-    {'value': 'artes-marciales', 'label': 'Artes Marciales'},
-    {'value': 'aventura', 'label': 'Aventuras'},
-    {'value': 'carreras', 'label': 'Carreras'},
-    {'value': 'ciencia-ficcion', 'label': 'Ciencia Ficción'},
-    {'value': 'comedia', 'label': 'Comedia'},
-    {'value': 'demencia', 'label': 'Demencia'},
-    {'value': 'demonios', 'label': 'Demonios'},
-    {'value': 'deportes', 'label': 'Deportes'},
-    {'value': 'drama', 'label': 'Drama'},
-    {'value': 'ecchi', 'label': 'Ecchi'},
-    {'value': 'escolares', 'label': 'Escolares'},
-    {'value': 'espacial', 'label': 'Espacial'},
-    {'value': 'fantasia', 'label': 'Fantasía'},
-    {'value': 'harem', 'label': 'Harem'},
-    {'value': 'historico', 'label': 'Historico'},
-    {'value': 'infantil', 'label': 'Infantil'},
-    {'value': 'josei', 'label': 'Josei'},
-    {'value': 'juegos', 'label': 'Juegos'},
-    {'value': 'magia', 'label': 'Magia'},
-    {'value': 'mecha', 'label': 'Mecha'},
-    {'value': 'militar', 'label': 'Militar'},
-    {'value': 'misterio', 'label': 'Misterio'},
-    {'value': 'musica', 'label': 'Música'},
-    {'value': 'parodia', 'label': 'Parodia'},
-    {'value': 'policia', 'label': 'Policía'},
-    {'value': 'psicologico', 'label': 'Psicológico'},
-    {'value': 'recuentos-de-la-vida', 'label': 'Recuentos de la vida'},
-    {'value': 'romance', 'label': 'Romance'},
-    {'value': 'samurai', 'label': 'Samurai'},
-    {'value': 'seinen', 'label': 'Seinen'},
-    {'value': 'shoujo', 'label': 'Shoujo'},
-    {'value': 'shounen', 'label': 'Shounen'},
-    {'value': 'sobrenatural', 'label': 'Sobrenatural'},
-    {'value': 'superpoderes', 'label': 'Superpoderes'},
-    {'value': 'suspenso', 'label': 'Suspenso'},
-    {'value': 'terror', 'label': 'Terror'},
-    {'value': 'vampiros', 'label': 'Vampiros'},
-    {'value': 'yaoi', 'label': 'Yaoi'},
-    {'value': 'yuri', 'label': 'Yuri'},
+    {'value': 'Acción', 'label': 'Acción'},
+    {'value': 'Artes Marciales', 'label': 'Artes Marciales'},
+    {'value': 'Aventuras', 'label': 'Aventuras'},
+    {'value': 'Carreras', 'label': 'Carreras'},
+    {'value': 'Ciencia Ficción', 'label': 'Ciencia Ficción'},
+    {'value': 'Comedia', 'label': 'Comedia'},
+    {'value': 'Demencia', 'label': 'Demencia'},
+    {'value': 'Demonios', 'label': 'Demonios'},
+    {'value': 'Deportes', 'label': 'Deportes'},
+    {'value': 'Drama', 'label': 'Drama'},
+    {'value': 'Ecchi', 'label': 'Ecchi'},
+    {'value': 'Escolares', 'label': 'Escolares'},
+    {'value': 'Espacial', 'label': 'Espacial'},
+    {'value': 'Fantasía', 'label': 'Fantasía'},
+    {'value': 'Harem', 'label': 'Harem'},
+    {'value': 'Historico', 'label': 'Histórico'},
+    {'value': 'Infantil', 'label': 'Infantil'},
+    {'value': 'Josei', 'label': 'Josei'},
+    {'value': 'Juegos', 'label': 'Juegos'},
+    {'value': 'Magia', 'label': 'Magia'},
+    {'value': 'Mecha', 'label': 'Mecha'},
+    {'value': 'Militar', 'label': 'Militar'},
+    {'value': 'Misterio', 'label': 'Misterio'},
+    {'value': 'Música', 'label': 'Música'},
+    {'value': 'Parodia', 'label': 'Parodia'},
+    {'value': 'Policía', 'label': 'Policía'},
+    {'value': 'Psicológico', 'label': 'Psicológico'},
+    {'value': 'Recuentos de la vida', 'label': 'Recuentos de la vida'},
+    {'value': 'Romance', 'label': 'Romance'},
+    {'value': 'Samurai', 'label': 'Samurai'},
+    {'value': 'Seinen', 'label': 'Seinen'},
+    {'value': 'Shoujo', 'label': 'Shoujo'},
+    {'value': 'Shounen', 'label': 'Shounen'},
+    {'value': 'Sobrenatural', 'label': 'Sobrenatural'},
+    {'value': 'Superpoderes', 'label': 'Superpoderes'},
+    {'value': 'Suspenso', 'label': 'Suspenso'},
+    {'value': 'Terror', 'label': 'Terror'},
+    {'value': 'Vampiros', 'label': 'Vampiros'},
+    {'value': 'Yaoi', 'label': 'Yaoi'},
+    {'value': 'Yuri', 'label': 'Yuri'},
   ];
 
   final List<Map<String, String>> statuses = [
-    {'value': '2', 'label': 'Finalizado'},
-    {'value': '1', 'label': 'En emisión'},
-    {'value': '3', 'label': 'Próximamente'},
+    {'value': 'Finalizado', 'label': 'Finalizado'},
+    {'value': 'En emisión', 'label': 'En emisión'},
+    {'value': 'Próximamente', 'label': 'Próximamente'},
   ];
 
   final List<Map<String, String>> sortOptions = [
     {'value': 'recent', 'label': 'Más Reciente'},
     {'value': '-recent', 'label': 'Menos Reciente'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicializar los filtros con los valores actuales de los providers
+    selectedTypes = List.from(ref.read(selectedTypesProvider));
+    selectedGenres = List.from(ref.read(selectedGenresProvider));
+    selectedYearRange = ref.read(selectedYearsProvider) ?? RangeValues(1950, 2024);
+    selectedStatus = ref.read(selectedStatusProvider);
+    selectedSortOrder = ref.read(selectedSortOrderProvider);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +160,13 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                     selectedStatus = null;
                     selectedSortOrder = null;
                   });
+
+                  // Resetear los providers
+                  ref.read(selectedTypesProvider.notifier).state = [];
+                  ref.read(selectedGenresProvider.notifier).state = [];
+                  ref.read(selectedYearsProvider.notifier).state = null;
+                  ref.read(selectedStatusProvider.notifier).state = null;
+                  ref.read(selectedSortOrderProvider.notifier).state = null;
                 },
                 child: const Text('Limpiar todo'),
               ),
@@ -322,13 +342,14 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
           Expanded(
             child: ElevatedButton(
               onPressed: () {
-                Navigator.pop(context, {
-                  'types': selectedTypes,
-                  'genres': selectedGenres,
-                  'yearRange': selectedYearRange,
-                  'status': selectedStatus,
-                  'sortOrder': selectedSortOrder,
-                });
+                // Actualizar los providers con los filtros seleccionados
+                ref.read(selectedTypesProvider.notifier).state = selectedTypes;
+                ref.read(selectedGenresProvider.notifier).state = selectedGenres;
+                ref.read(selectedYearsProvider.notifier).state = selectedYearRange;
+                ref.read(selectedStatusProvider.notifier).state = selectedStatus;
+                ref.read(selectedSortOrderProvider.notifier).state = selectedSortOrder;
+
+                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),

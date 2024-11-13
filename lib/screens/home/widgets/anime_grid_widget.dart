@@ -6,50 +6,61 @@ import '../../../models/model_anime.dart';
 import '../../../providers.dart';
 import 'anime_card_widget.dart';
 
-class AnimeGridWidget extends ConsumerWidget {
+
+class AnimeGridWidget extends ConsumerStatefulWidget {
   const AnimeGridWidget({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  _AnimeGridWidgetState createState() => _AnimeGridWidgetState();
+}
+
+class _AnimeGridWidgetState extends ConsumerState<AnimeGridWidget> {
+  final ScrollController _scrollController = ScrollController();
+
+  bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    final isLoadingMore = ref.read(isLoadingMoreProvider);
+    final hasMoreContent = ref.read(hasMoreContentProvider);
+
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200 &&
+        !isLoadingMore &&
+        hasMoreContent) {
+      // Cargar más animes
+      ref.read(animeListProvider.notifier).loadMoreAnimes();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final animeListAsyncValue = ref.watch(animeListProvider);
-    final searchQuery = ref.watch(searchQueryProvider);
-    final selectedGenres = ref.watch(selectedGenresProvider);
     final isLoadingMore = ref.watch(isLoadingMoreProvider);
     final hasMoreContent = ref.watch(hasMoreContentProvider);
     final isTablet = MediaQuery.of(context).size.width >= 768;
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (ScrollNotification scrollInfo) {
-        if (scrollInfo is ScrollEndNotification) {
-          if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent * 0.7) {
-            if (!isLoadingMore && hasMoreContent) {
-              ref.read(animeListProvider.notifier).loadMoreAnimes();
-            }
-          }
-        }
-        return true;
-      },
-      child: animeListAsyncValue.when(
-        data: (animes) => _buildGrid(
-          context,
-          animes,
-          searchQuery,
-          selectedGenres,
-          isLoadingMore,
-          hasMoreContent,
-          isTablet,
-        ),
-        loading: () => _buildLoadingGrid(isTablet),
-        error: (error, stack) => _buildError(context, error, ref),
+    return animeListAsyncValue.when(
+      data: (animes) => _buildGrid(
+        context,
+        animes,
+        isLoadingMore,
+        hasMoreContent,
+        isTablet,
       ),
+      loading: () => _buildLoadingGrid(isTablet),
+      error: (error, stack) => _buildError(context, error, ref),
     );
   }
 
   Widget _buildGrid(
       BuildContext context,
       List<Anime> animes,
-      String searchQuery,
-      Set<String> selectedGenres,
       bool isLoadingMore,
       bool hasMoreContent,
       bool isTablet,
@@ -65,8 +76,9 @@ class AnimeGridWidget extends ConsumerWidget {
       sliver: SliverList(
         delegate: SliverChildListDelegate([
           GridView.builder(
+            controller: _scrollController,
             shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: _calculateCrossAxisCount(context),
               childAspectRatio: 0.7,
@@ -264,10 +276,10 @@ class AnimeGridWidget extends ConsumerWidget {
 
   int _calculateCrossAxisCount(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width > 1200) return 6;      // Pantallas muy grandes
-    if (width > 900) return 5;       // Tablets grandes/Desktop
-    if (width > 600) return 4;       // Tablets
-    if (width > 400) return 3;       // Teléfonos en landscape
-    return 2;                        // Teléfonos en portrait
+    if (width > 1200) return 6; // Pantallas muy grandes
+    if (width > 900) return 5; // Tablets grandes/Desktop
+    if (width > 600) return 4; // Tablets
+    if (width > 400) return 3; // Teléfonos en landscape
+    return 2; // Teléfonos en portrait
   }
 }

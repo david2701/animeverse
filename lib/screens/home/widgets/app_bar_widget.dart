@@ -1,7 +1,7 @@
+// lib/screens/home/widgets/app_bar_widget.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers.dart';
-import '../providers/home_providers.dart';
 
 class HomeAppBarWidget extends ConsumerStatefulWidget {
   const HomeAppBarWidget({Key? key}) : super(key: key);
@@ -38,7 +38,7 @@ class _HomeAppBarWidgetState extends ConsumerState<HomeAppBarWidget> {
   }
 
   Widget _buildSearchField() {
-    return Container(
+    return SizedBox(
       height: 40,
       child: TextField(
         controller: _searchController,
@@ -179,7 +179,7 @@ class _HomeAppBarWidgetState extends ConsumerState<HomeAppBarWidget> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
-                        ref.read(selectedGenresProvider.notifier).state = {};
+                        ref.read(selectedGenresProvider.notifier).state = [];
                         Navigator.pop(context);
                       },
                       style: OutlinedButton.styleFrom(
@@ -190,9 +190,9 @@ class _HomeAppBarWidgetState extends ConsumerState<HomeAppBarWidget> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: FilledButton(
+                    child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
-                      style: FilledButton.styleFrom(
+                      style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: const Text('Aplicar'),
@@ -233,19 +233,19 @@ class _HomeAppBarWidgetState extends ConsumerState<HomeAppBarWidget> {
                   label: Text(option),
                   selected: isSelected,
                   onSelected: (selected) {
-                    final genres = ref.read(selectedGenresProvider);
+                    final genres = ref.read(selectedGenresProvider).toList();
                     if (selected) {
                       genres.add(option);
                     } else {
                       genres.remove(option);
                     }
                     ref.read(selectedGenresProvider.notifier).state =
-                        Set.from(genres);
+                        List.from(genres);
                   },
                   labelStyle: TextStyle(
-                    color: isSelected ?
-                    Colors.white :
-                    Theme.of(context).colorScheme.primary,
+                    color: isSelected
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.primary,
                   ),
                 );
               },

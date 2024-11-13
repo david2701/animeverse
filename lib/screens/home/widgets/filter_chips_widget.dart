@@ -1,7 +1,7 @@
+// lib/screens/home/widgets/filter_chips_widget.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers.dart';
-import '../providers/home_providers.dart';
 
 class FilterChipsWidget extends ConsumerWidget {
   const FilterChipsWidget({Key? key}) : super(key: key);
@@ -33,16 +33,16 @@ class FilterChipsWidget extends ConsumerWidget {
   List<Widget> _buildGenreChips(
       BuildContext context,
       WidgetRef ref,
-      Set<String> selectedGenres,
+      List<String> selectedGenres,
       ) {
     final genres = [
-      'Action',
-      'Adventure',
-      'Comedy',
+      'Acción',
+      'Aventura',
+      'Comedia',
       'Drama',
-      'Fantasy',
-      'Horror',
-      'Mystery',
+      'Fantasīa',
+      'Terror',
+      'Misterio',
       'Romance',
       'Sci-Fi',
       'Slice of Life',
@@ -92,16 +92,16 @@ class FilterChipsWidget extends ConsumerWidget {
   }
 
   void _onFilterSelected(WidgetRef ref, String label, bool selected) {
-    final genres = ref.read(selectedGenresProvider);
+    final genres = ref.read(selectedGenresProvider).toList();
     if (label == 'All') {
-      ref.read(selectedGenresProvider.notifier).state = {};
+      ref.read(selectedGenresProvider.notifier).state = [];
     } else {
       if (selected) {
         genres.add(label);
       } else {
         genres.remove(label);
       }
-      ref.read(selectedGenresProvider.notifier).state = Set.from(genres);
+      ref.read(selectedGenresProvider.notifier).state = List.from(genres);
     }
   }
 }
