@@ -50,6 +50,7 @@ class Anime {
     List<String>? genres,
     String? nextEpisodeDate,
     List<Episode>? episodes,
+    String? synopsis,
   }) {
     return Anime(
       id: id ?? this.id,
@@ -62,6 +63,7 @@ class Anime {
       genres: genres ?? this.genres,
       nextEpisodeDate: nextEpisodeDate ?? this.nextEpisodeDate,
       episodes: episodes ?? this.episodes,
+      synopsis: synopsis ?? this.synopsis,
     );
   }
 
@@ -160,23 +162,30 @@ class Episode {
   }
 }
 
+// lib/models/model_anime.dart
+
 class VideoOption {
-  final String url;
   final String optionName;
+  final String url;
+  final bool requiresConfirmation;
 
-  VideoOption({required this.url, required this.optionName});
+  VideoOption({
+    required this.optionName,
+    required this.url,
+    this.requiresConfirmation = false,
+  });
 
-  Map<String, dynamic> toJson() {
-    return {
-      'url': url,
-      'optionName': optionName,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+    'optionName': optionName,
+    'url': url,
+    'requiresConfirmation': requiresConfirmation,
+  };
 
   factory VideoOption.fromJson(Map<String, dynamic> json) {
     return VideoOption(
-      url: json['url'],
-      optionName: json['optionName'],
+      optionName: json['optionName'] ?? 'Opción Desconocida',
+      url: json['url'] ?? '',
+      requiresConfirmation: json['requiresConfirmation'] ?? false,
     );
   }
 }

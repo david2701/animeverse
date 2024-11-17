@@ -1,7 +1,7 @@
 import 'package:animeverse/scraping_services.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'models/model_anime.dart';
+import '../models/model_anime.dart';
 import 'video_player_screen.dart';
 
 enum AnimeUserStatus {
@@ -723,7 +723,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
 
     try {
       final scraperService = AnimeScraperService();
-      await scraperService.fetchEpisodeOptions(episode);
+      await scraperService.fetchVideoOptionsForEpisode(episode);
       if (mounted) {
         Navigator.pop(context);
         final result = await Navigator.push(

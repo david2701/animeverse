@@ -43,6 +43,19 @@ dependencies:
   shimmer: ^3.0.0
   http: ^1.2.2
 
+  crypto: ^3.0.6
+  video_player: ^2.9.2
+  chewie: ^1.8.5
+  webview_flutter: ^4.10.0
+
+  webview_flutter_android: ^4.0.2
+  webview_flutter_wkwebview: ^3.16.2
+
+  flutter_inappwebview: ^6.1.5
+
+  url_launcher: ^6.1.7 # Opcional: para abrir enlaces externos si es necesario
+
+
 
 dev_dependencies:
   flutter_test:

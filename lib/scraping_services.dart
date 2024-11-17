@@ -1,9 +1,12 @@
+// lib/services/anime_scraper_service.dart
+
 import 'package:flutter/foundation.dart';
 import 'package:html/dom.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html;
 import 'dart:convert';
-import 'models/model_anime.dart';
+import 'package:hive/hive.dart';
+import '../models/model_anime.dart';
 
 class AnimeScraperService {
   // Encabezados HTTP para simular una solicitud de navegador
@@ -16,15 +19,17 @@ class AnimeScraperService {
     'Connection': 'keep-alive',
   };
 
-  Future<int> getLastModifiedTimestamp() async {
-    try {
-      // Por ahora, simplemente devolvemos el timestamp actual
-      // En una implementación real, esto vendría del servidor
-      return DateTime.now().millisecondsSinceEpoch;
-    } catch (e) {
-      debugPrint('Error obteniendo timestamp de modificación: $e');
-      return 0;
-    }
+  // Box para caching de animes
+  late Box _animeBox;
+
+  AnimeScraperService() {
+    _initializeHive();
+  }
+
+  Future<void> _initializeHive() async {
+    print('Inicializando Hive...');
+    _animeBox = await Hive.openBox('animeBox');
+    print('Hive inicializado y box "animeBox" abierto.');
   }
 
   /// Método para obtener todos los animes de un directorio específico.
@@ -44,8 +49,10 @@ class AnimeScraperService {
       final animeElements = document.querySelectorAll('.animes .anime');
       print('Número de animes encontrados en directorio: ${animeElements.length}');
 
+      // Procesar cada elemento de anime
       for (var element in animeElements) {
         try {
+          print('\nProcesando un nuevo anime...');
           final title = element.querySelector('.title')?.text.trim() ?? 'Título Desconocido';
           final detailUrl = element.querySelector('a')?.attributes['href'] ?? '';
           final coverImageUrl = element.querySelector('.thumb img')?.attributes['src'] ?? '';
@@ -57,9 +64,18 @@ class AnimeScraperService {
               ? coverImageUrl
               : 'https://tioanime.com$coverImageUrl';
 
-          print('Procesando anime: $title');
-          print('URL: $fullDetailUrl');
-          print('Cover: $fullCoverImageUrl');
+          print('Título: $title');
+          print('URL de Detalle: $fullDetailUrl');
+          print('URL de Cover: $fullCoverImageUrl');
+
+          // Verificar si el anime ya está en el cache
+          if (_animeBox.containsKey(fullDetailUrl)) {
+            print('Anime ya está en cache. Cargando desde cache...');
+            final cachedAnime = Anime.fromJson(Map<String, dynamic>.from(_animeBox.get(fullDetailUrl)));
+            animes.add(cachedAnime);
+            print('Anime cargado desde cache: $title');
+            continue;
+          }
 
           final anime = await fetchAnimeDetails(fullDetailUrl);
           final animeConDetalles = anime.copyWith(
@@ -67,6 +83,10 @@ class AnimeScraperService {
             coverImageUrl: fullCoverImageUrl,
             detailUrl: fullDetailUrl,
           );
+
+          // Guardar en el cache
+          await _animeBox.put(fullDetailUrl, animeConDetalles.toJson());
+          print('Anime guardado en cache: $title');
 
           animes.add(animeConDetalles);
         } catch (e) {
@@ -84,7 +104,7 @@ class AnimeScraperService {
   /// [animeUrl]: URL de la página de detalles del anime.
   Future<Anime> fetchAnimeDetails(String animeUrl) async {
     try {
-      print('Realizando solicitud GET a: $animeUrl');
+      print('\nRealizando solicitud GET a: $animeUrl');
       final response = await http.get(Uri.parse(animeUrl), headers: _headers);
 
       if (response.statusCode != 200) {
@@ -105,17 +125,31 @@ class AnimeScraperService {
           .where((e) => e.isNotEmpty)
           .toList();
 
+      print('Título: $title');
+      print('Tipo: $type');
+      print('Año: $year');
+      print('Estado: $status');
+      print('Géneros: ${genres.join(', ')}');
+
+      // Sinopsis (si está disponible)
+      final synopsisElement = document.querySelector('.synopsis');
+      final synopsis = synopsisElement?.text.trim() ?? '';
+      print('Sinopsis: ${synopsis.isNotEmpty ? synopsis : 'No disponible'}');
+
       // Fecha del próximo episodio
       final nextEpisodeElement = document.querySelector('.next-episode span');
       final nextEpisodeDate = nextEpisodeElement?.text.trim();
+      print('Fecha del Próximo Episodio: ${nextEpisodeDate ?? 'No disponible'}');
 
       // Extraer episodios desde los scripts
       final episodes = await _extractEpisodesFromScripts(document, animeUrl);
 
+      // **Importante:** No estamos llamando a `fetchEpisodeOptions` aquí.
+      // Las opciones de video se recuperarán cuando el usuario acceda a los detalles del episodio.
+
       return Anime(
         title: title,
-        coverImageUrl: '',
-        // Se actualizará en fetchAllAnimes
+        coverImageUrl: '', // Se actualizará en fetchAllAnimes
         detailUrl: animeUrl,
         type: type,
         year: year,
@@ -123,6 +157,7 @@ class AnimeScraperService {
         genres: genres,
         nextEpisodeDate: nextEpisodeDate,
         episodes: episodes,
+        synopsis: synopsis,
       );
     } catch (e) {
       print('Error fetching anime details: $e');
@@ -138,6 +173,7 @@ class AnimeScraperService {
     for (var script in scripts) {
       if (script.text.contains('var episodes =')) {
         episodesScriptContent = script.text;
+        print('Script de episodios encontrado.');
         break;
       }
     }
@@ -153,10 +189,17 @@ class AnimeScraperService {
       final episodesDetailsData = _extractJavaScriptArray(episodesScriptContent, 'episodes_details');
       final animeInfoData = _extractJavaScriptArray(episodesScriptContent, 'anime_info');
 
+      print('Variables JavaScript extraídas exitosamente.');
+
       // Convertir las cadenas de arrays JavaScript a listas de Dart
       final List<dynamic> episodes = json.decode(episodesData);
       final List<dynamic> episodesDetails = json.decode(episodesDetailsData);
       final List<dynamic> animeInfo = json.decode(animeInfoData);
+
+      print('Conversión de arrays JavaScript a listas Dart completada.');
+      print('Episodios: $episodes');
+      print('Detalles de Episodios: $episodesDetails');
+      print('Información de Anime: $animeInfo');
 
       // Construir la lista de episodios
       List<Episode> episodeList = [];
@@ -169,6 +212,12 @@ class AnimeScraperService {
         final thumbnailUrl = 'https://tioanime.com/uploads/thumbs/${animeInfo[0]}.jpg';
         final releaseDate = episodeDetail;
 
+        print('Episodio $i: $episodeTitle');
+        print('URL de Video: $videoUrl');
+        print('URL de Thumbnail: $thumbnailUrl');
+        print('Fecha de Lanzamiento: $releaseDate');
+
+        // Crear un episodio con videoOptions vacíos; se rellenarán posteriormente
         episodeList.add(Episode(
           title: episodeTitle,
           videoUrl: videoUrl,
@@ -196,6 +245,8 @@ class AnimeScraperService {
       // Reemplazar comillas simples por comillas dobles para JSON válido
       arrayString = arrayString.replaceAll("'", '"');
 
+      print('Array extraído para la variable "$variableName": $arrayString');
+
       return arrayString;
     } else {
       throw Exception('No se pudo extraer la variable $variableName del script.');
@@ -204,7 +255,7 @@ class AnimeScraperService {
 
   /// Método para obtener las opciones de video de un episodio específico.
   /// [episode]: instancia de [Episode] para la cual se obtendrán las opciones de video.
-  Future<void> fetchEpisodeOptions(Episode episode) async {
+  Future<void> fetchVideoOptionsForEpisode(Episode episode) async {
     try {
       print('Realizando solicitud GET para opciones de video a: ${episode.videoUrl}');
       final response = await http.get(Uri.parse(episode.videoUrl), headers: _headers);
@@ -213,28 +264,72 @@ class AnimeScraperService {
         throw Exception('Error HTTP: ${response.statusCode}');
       }
 
+      // Imprimir el HTML completo de la página de opciones de video
+      print('HTML de la página de opciones de video para el episodio "${episode.title}":');
+      print(response.body);
+
+      // Extraer la variable 'videos' del script
       final document = html.parse(response.body);
-      final optionsElements = document.querySelectorAll('#episode-options .nav-link');
-      print('Encontradas ${optionsElements.length} opciones de video');
+      final scripts = document.getElementsByTagName('script');
+      String videosScriptContent = '';
 
-      final options = optionsElements.map((element) {
-        final optionName = element.attributes['title']?.trim() ?? 'Opción Desconocida';
-        final dataId = element.attributes['data-id'] ?? '';
-        final videoUrl = 'https://tioanime.com/ver/${episode.videoUrl.split('/').last}?opcion=$dataId';
+      for (var script in scripts) {
+        if (script.text.contains('var videos =')) {
+          videosScriptContent = script.text;
+          print('Script de videos encontrado.');
+          break;
+        }
+      }
 
-        print('Opción de video: $optionName - URL: $videoUrl');
+      if (videosScriptContent.isEmpty) {
+        print('No se encontró el script con los datos de videos.');
+        return;
+      }
 
-        return VideoOption(
-          url: videoUrl,
-          optionName: optionName,
-        );
-      }).toList();
+      // Extraer la variable 'videos'
+      final videosData = _extractJavaScriptArray(videosScriptContent, 'videos');
 
-      episode.videoOptions.clear(); // Limpia opciones existentes
-      episode.videoOptions.addAll(options);
+      // Parsear los datos de videos
+      final List<dynamic> videosList = json.decode(videosData);
+
+      // Mapear a VideoOption desde model_anime.dart
+      List<VideoOption> videoOptions = videosList.map((video) {
+        if (video is List && video.length >= 2) {
+          return VideoOption(
+            optionName: video[0],
+            url: video[1],
+            requiresConfirmation: video.length >= 4 ? video[3] == 1 : false,
+          );
+        } else {
+          return null;
+        }
+      }).whereType<VideoOption>().toList();
+
+      print('Opciones de video extraídas:');
+      for (var vo in videoOptions) {
+        print('Opción: ${vo.optionName}, URL: ${vo.url}, Requiere Confirmación: ${vo.requiresConfirmation}');
+      }
+
+      // Actualizar videoOptions en el episodio
+      print('Actualizando videoOptions para el episodio: ${episode.title}');
+      episode.videoOptions.clear();
+      episode.videoOptions.addAll(videoOptions);
+      print('Número de opciones de video actualizadas: ${episode.videoOptions.length}');
     } catch (e) {
       print('Error obteniendo opciones de video: $e');
       throw Exception('Failed to fetch video options: $e');
+    }
+  }
+
+  /// Método para obtener el timestamp de la última modificación.
+  Future<int> getLastModifiedTimestamp() async {
+    try {
+      // Por ahora, simplemente devolvemos el timestamp actual
+      // En una implementación real, esto vendría del servidor
+      return DateTime.now().millisecondsSinceEpoch;
+    } catch (e) {
+      debugPrint('Error obteniendo timestamp de modificación: $e');
+      return 0;
     }
   }
 }
