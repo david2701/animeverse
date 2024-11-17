@@ -1,11 +1,13 @@
+// lib/services/cache_services.dart
+
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
-import '../scraping_services.dart';
 import '../models/model_anime.dart';
+import '../services/anime_scraper_service_base.dart';
 
 class AnimeCacheService {
   final Box _animeBox;
-  final AnimeScraperService _animeService;
+  final AnimeScraperServiceBase _animeService;
   static const int CACHE_DURATION_HOURS = 24;
   static const String CACHE_VERSION = "1.0";
   static const String TOTAL_ITEMS_KEY = 'total_cached_items';
@@ -17,29 +19,29 @@ class AnimeCacheService {
   Future<List<Anime>> getOrUpdateAnimes({int page = 1}) async {
     try {
       final totalCached =
-          _animeBox.get(TOTAL_ITEMS_KEY, defaultValue: 0) as int;
+      _animeBox.get(TOTAL_ITEMS_KEY, defaultValue: 0) as int;
       final needsGlobalUpdate = await _needsGlobalUpdate();
 
-// Si tenemos suficientes items y no necesitamos actualizar
+      // If we have enough items and don't need to update
       if (totalCached >= page * ITEMS_PER_PAGE && !needsGlobalUpdate) {
-        debugPrint('📦 Usando caché (${totalCached} items almacenados)');
+        debugPrint('📦 Using cache (${totalCached} items stored)');
         return _getCachedAnimes(page);
       }
 
-      debugPrint('🔄 Actualizando datos para página $page');
+      debugPrint('🔄 Updating data for page $page');
       final result = await _updateCache(page, totalCached);
 
       debugPrint('''
-        📊 Estado del caché:
-        - Total elementos: ${result.mergedAnimes.length}
-        - Nuevos/Actualizados: ${result.updatedCount}
-        - Desde caché: ${result.mergedAnimes.length - result.updatedCount}
-        - Total almacenado: ${await _getTotalCachedItems()}
+        📊 Cache status:
+        - Total items: ${result.mergedAnimes.length}
+        - New/Updated: ${result.updatedCount}
+        - From cache: ${result.mergedAnimes.length - result.updatedCount}
+        - Total stored: ${await _getTotalCachedItems()}
       ''');
 
       return result.mergedAnimes;
     } catch (e) {
-      debugPrint('❌ Error en actualización: $e');
+      debugPrint('❌ Error during update: $e');
       return _getCachedAnimes(page);
     }
   }
@@ -52,7 +54,7 @@ class AnimeCacheService {
     final difference = DateTime.now().difference(lastUpdateTime).inHours;
 
     if (difference > CACHE_DURATION_HOURS) {
-      debugPrint('📌 Caché expirado (último: ${difference}h atrás)');
+      debugPrint('📌 Cache expired (last: ${difference}h ago)');
       return true;
     }
 
@@ -61,24 +63,24 @@ class AnimeCacheService {
       final hasChanges = serverTimestamp > lastUpdate;
 
       if (hasChanges) {
-        debugPrint('📌 Detectados cambios en el servidor');
+        debugPrint('📌 Changes detected on the server');
       }
 
       return hasChanges;
     } catch (e) {
-      debugPrint('⚠️ Error verificando servidor: $e');
+      debugPrint('⚠️ Error checking server: $e');
       return false;
     }
   }
 
   Future<UpdateResult> _updateCache(int page, int totalCached) async {
-// Calcular cuántas páginas necesitamos obtener
+    // Calculate how many pages we need to fetch
     final currentPages = (totalCached / ITEMS_PER_PAGE).ceil();
     final targetPage = page;
     final updatedAnimes = <Anime>[];
     var updateCount = 0;
 
-// Obtener las páginas que faltan
+    // Fetch missing pages
     for (var i = currentPages + 1; i <= targetPage; i++) {
       final newAnimes = await _animeService.fetchAllAnimes(page: i);
       if (newAnimes.isEmpty) break;
@@ -88,7 +90,7 @@ class AnimeCacheService {
       updateCount += newAnimes.length;
     }
 
-// Actualizar el total y la última actualización
+    // Update total and last update time
     final newTotal = totalCached + updateCount;
     await _animeBox.put(TOTAL_ITEMS_KEY, newTotal);
     await _animeBox.put(LAST_UPDATE_KEY, DateTime.now().millisecondsSinceEpoch);
@@ -113,9 +115,9 @@ class AnimeCacheService {
         versionKey: CACHE_VERSION,
       });
 
-      debugPrint('✅ Página $page guardada en caché');
+      debugPrint('✅ Page $page saved to cache');
     } catch (e) {
-      debugPrint('❌ Error guardando página $page: $e');
+      debugPrint('❌ Error saving page $page: $e');
       await _clearPageCache(page);
       rethrow;
     }
@@ -133,14 +135,13 @@ class AnimeCacheService {
         return Anime.fromJson(convertedJson);
       }).toList();
 
-      debugPrint('📖 Leídos ${animes.length} animes de la página $page');
+      debugPrint('📖 Read ${animes.length} animes from page $page');
       return animes;
     } catch (e) {
-      debugPrint('❌ Error leyendo caché: $e');
+      debugPrint('❌ Error reading cache: $e');
       return [];
     }
   }
-
 
   dynamic _convertKeysToString(dynamic data) {
     if (data is Map) {
@@ -153,7 +154,6 @@ class AnimeCacheService {
       return data;
     }
   }
-
 
   Future<int> _getTotalCachedItems() async {
     return _animeBox.get(TOTAL_ITEMS_KEY, defaultValue: 0) as int;
@@ -170,8 +170,8 @@ class AnimeCacheService {
       'lastUpdate': DateTime.fromMillisecondsSinceEpoch(lastUpdate),
       'cacheVersion': CACHE_VERSION,
       'isExpired': DateTime.now()
-              .difference(DateTime.fromMillisecondsSinceEpoch(lastUpdate))
-              .inHours >
+          .difference(DateTime.fromMillisecondsSinceEpoch(lastUpdate))
+          .inHours >
           CACHE_DURATION_HOURS,
     };
   }
@@ -179,9 +179,9 @@ class AnimeCacheService {
   Future<void> clearCache() async {
     try {
       await _animeBox.clear();
-      debugPrint('🗑️ Caché limpiado completamente');
+      debugPrint('🗑️ Cache completely cleared');
     } catch (e) {
-      debugPrint('❌ Error limpiando caché: $e');
+      debugPrint('❌ Error clearing cache: $e');
       rethrow;
     }
   }
@@ -193,9 +193,9 @@ class AnimeCacheService {
     }
   }
 
-// Método para pre-cargar varias páginas
+  // Method to preload multiple pages
   Future<void> preloadPages(int numberOfPages) async {
-    debugPrint('🔄 Pre-cargando $numberOfPages páginas...');
+    debugPrint('🔄 Preloading $numberOfPages pages...');
 
     for (var i = 1; i <= numberOfPages; i++) {
       await getOrUpdateAnimes(page: i);
@@ -203,10 +203,10 @@ class AnimeCacheService {
 
     final stats = await getCacheStats();
     debugPrint('''
-      ✅ Pre-carga completada:
+      ✅ Preloading completed:
       - Total items: ${stats['totalItems']}
-      - Páginas: ${stats['totalPages']}
-      - Última actualización: ${stats['lastUpdate']}
+      - Pages: ${stats['totalPages']}
+      - Last update: ${stats['lastUpdate']}
     ''');
   }
 }

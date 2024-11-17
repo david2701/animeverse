@@ -1,8 +1,8 @@
 // lib/screens/home/home_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers.dart';
-import 'widgets/app_bar_widget.dart';
 import 'widgets/side_menu_widget.dart';
 import 'widgets/featured_anime_widget.dart';
 import 'widgets/filter_chips_widget.dart';
@@ -38,7 +38,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       setState(() => _isLoadingMore = true);
 
       try {
-        // Usamos el método del notifier directamente
         await ref.read(animeListProvider.notifier).loadMoreAnimes();
       } catch (e) {
         debugPrint('Error loading more content: $e');
@@ -53,6 +52,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isTablet = MediaQuery.of(context).size.width >= 768;
+    final selectedScraper = ref.watch(selectedScraperProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -62,20 +62,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
-                // Reiniciar la lista
                 ref.invalidate(animeListProvider);
-                // Resetear la página
                 ref.read(currentPageProvider.notifier).state = 1;
-                // Resetear el estado de carga
                 ref.read(hasMoreContentProvider.notifier).state = true;
               },
               child: CustomScrollView(
                 controller: _scrollController,
-                slivers: const [
-                  HomeAppBarWidget(),
-                  FilterChipsWidget(),
-                  FeaturedAnimeWidget(),
-                  AnimeGridWidget(),
+                slivers: [
+                  SliverAppBar(
+                    title: Text('Home'),
+                    floating: true,
+                    actions: [
+                      IconButton(
+                        icon: Icon(Icons.search),
+                        onPressed: () {
+                          // Toggle search visibility
+                          final isSearchVisible = ref.read(isSearchVisibleProvider);
+                          ref.read(isSearchVisibleProvider.notifier).state = !isSearchVisible;
+                        },
+                      ),
+                      PopupMenuButton<ScraperProviderOption>(
+                        onSelected: (ScraperProviderOption result) {
+                          ref.read(selectedScraperProvider.notifier).state = result;
+                          ref.invalidate(animeListProvider);
+                        },
+                        itemBuilder: (BuildContext context) =>
+                        <PopupMenuEntry<ScraperProviderOption>>[
+                          const PopupMenuItem<ScraperProviderOption>(
+                            value: ScraperProviderOption.TioAnime,
+                            child: Text('TioAnime'),
+                          ),
+                          const PopupMenuItem<ScraperProviderOption>(
+                            value: ScraperProviderOption.FLVAnime,
+                            child: Text('FLVAnime'),
+                          ),
+                        ],
+                        icon: Icon(Icons.swap_horiz),
+                      ),
+                    ],
+                  ),
+                  const FilterChipsWidget(),
+                  const FeaturedAnimeWidget(),
+                  const AnimeGridWidget(),
                 ],
               ),
             ),

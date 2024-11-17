@@ -1,16 +1,19 @@
 // lib/providers/providers.dart
-import 'package:flutter/foundation.dart';
+
+import 'package:animeverse/scraping_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import '../models/model_anime.dart';
 import '../models/anime_status.dart';
-import '../scraping_services.dart';
+import '../services/anime_scraper_service_base.dart';
+import '../services/flv_anime_scraper_service.dart';
 import 'cache_services.dart';
 
 // MARK: - Storage Providers
-final userDataBoxProvider = StateProvider<Box?>((ref) => null);
-final animeBoxProvider = StateProvider<Box?>((ref) => null);
+final userDataBoxProvider = Provider<Box>((ref) => throw UnimplementedError());
+final tioAnimeBoxProvider = Provider<Box>((ref) => throw UnimplementedError());
+final flvAnimeBoxProvider = Provider<Box>((ref) => throw UnimplementedError());
 
 // MARK: - Navigation Providers
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
@@ -32,7 +35,6 @@ final selectedTypesProvider = StateProvider<List<String>>((ref) => []);
 final selectedStatusProvider = StateProvider<String?>((ref) => null);
 final selectedSortOrderProvider = StateProvider<String?>((ref) => null);
 
-// Provider para agrupar todos los filtros
 final filtersProvider = Provider<Map<String, dynamic>>((ref) {
   return {
     'genres': ref.watch(selectedGenresProvider),
@@ -44,11 +46,41 @@ final filtersProvider = Provider<Map<String, dynamic>>((ref) {
   };
 });
 
-// MARK: - Services Providers
+// MARK: - Scraper Provider Option Enum
+enum ScraperProviderOption { TioAnime, FLVAnime }
+
+// Selected Scraper Provider
+final selectedScraperProvider =
+StateProvider<ScraperProviderOption>((ref) => ScraperProviderOption.TioAnime);
+
+// Scraper Service Provider
+final scraperServiceProvider = Provider<AnimeScraperServiceBase>((ref) {
+  final selectedProvider = ref.watch(selectedScraperProvider);
+  switch (selectedProvider) {
+    case ScraperProviderOption.TioAnime:
+      return AnimeScraperService();
+    case ScraperProviderOption.FLVAnime:
+      return FLVAnimeScraperService();
+  }
+});
+
+// MARK: - Cache Service Provider
 final cacheServiceProvider = Provider<AnimeCacheService>((ref) {
-  final animeBox = ref.watch(animeBoxProvider);
-  if (animeBox == null) throw Exception('AnimeBox not initialized');
-  return AnimeCacheService(animeBox, AnimeScraperService());
+  final selectedProvider = ref.watch(selectedScraperProvider);
+  final scraperService = ref.watch(scraperServiceProvider);
+
+  Box? animeBox;
+  switch (selectedProvider) {
+    case ScraperProviderOption.TioAnime:
+      animeBox = ref.watch(tioAnimeBoxProvider);
+      break;
+    case ScraperProviderOption.FLVAnime:
+      animeBox = ref.watch(flvAnimeBoxProvider);
+      break;
+  }
+
+  if (animeBox == null) throw Exception('AnimeBox not initialized for $selectedProvider');
+  return AnimeCacheService(animeBox, scraperService);
 });
 
 // MARK: - Anime List Providers
@@ -65,10 +97,16 @@ class AnimeListNotifier extends StateNotifier<AsyncValue<List<Anime>>> {
   }
 
   void _initialize() {
-    // Escuchar cambios en los filtros
+    // Listen to changes in filters
     _ref.listen<Map<String, dynamic>>(filtersProvider, (previous, next) {
       _applyFilters();
     });
+
+    // Listen to changes in the selected scraper provider
+    _ref.listen<ScraperProviderOption>(selectedScraperProvider, (previous, next) {
+      _refreshAnimesOnScraperChange();
+    });
+
     loadInitialAnimes();
   }
 
@@ -90,15 +128,13 @@ class AnimeListNotifier extends StateNotifier<AsyncValue<List<Anime>>> {
   }
 
   Future<void> loadMoreAnimes() async {
-    if (_ref.read(isLoadingMoreProvider) || !_ref.read(hasMoreContentProvider))
-      return;
+    if (_ref.read(isLoadingMoreProvider) || !_ref.read(hasMoreContentProvider)) return;
 
     _ref.read(isLoadingMoreProvider.notifier).state = true;
     try {
       final currentPage = _ref.read(currentPageProvider);
       final cacheService = _ref.read(cacheServiceProvider);
-      final newAnimes =
-      await cacheService.getOrUpdateAnimes(page: currentPage + 1);
+      final newAnimes = await cacheService.getOrUpdateAnimes(page: currentPage + 1);
 
       if (newAnimes.isNotEmpty) {
         _ref.read(currentPageProvider.notifier).state = currentPage + 1;
@@ -114,17 +150,12 @@ class AnimeListNotifier extends StateNotifier<AsyncValue<List<Anime>>> {
     }
   }
 
-  Future<void> refreshAnimes() async {
-    try {
-      final cacheService = _ref.read(cacheServiceProvider);
-      await cacheService.clearCache();
-      _ref.read(currentPageProvider.notifier).state = 1;
-      _ref.read(hasMoreContentProvider.notifier).state = true;
-      _allAnimes.clear();
-      await loadInitialAnimes();
-    } catch (error) {
-      debugPrint('Error refreshing animes: $error');
-    }
+  Future<void> _refreshAnimesOnScraperChange() async {
+    // Reset page and clear existing animes
+    _ref.read(currentPageProvider.notifier).state = 1;
+    _ref.read(hasMoreContentProvider.notifier).state = true;
+    _allAnimes.clear();
+    await loadInitialAnimes();
   }
 
   void _applyFilters() {
@@ -132,7 +163,7 @@ class AnimeListNotifier extends StateNotifier<AsyncValue<List<Anime>>> {
 
     List<Anime> filteredAnimes = _allAnimes;
 
-    // Filtrar por géneros
+    // Filter by genres
     final List<String> selectedGenres = filters['genres'] as List<String>;
     if (selectedGenres.isNotEmpty) {
       filteredAnimes = filteredAnimes.where((Anime anime) {
@@ -140,7 +171,7 @@ class AnimeListNotifier extends StateNotifier<AsyncValue<List<Anime>>> {
       }).toList();
     }
 
-    // Filtrar por tipos
+    // Filter by types
     final List<String> selectedTypes = filters['types'] as List<String>;
     if (selectedTypes.isNotEmpty) {
       filteredAnimes = filteredAnimes.where((Anime anime) {
@@ -148,19 +179,19 @@ class AnimeListNotifier extends StateNotifier<AsyncValue<List<Anime>>> {
       }).toList();
     }
 
-    // Filtrar por años
+    // Filter by years
     final RangeValues? selectedYears = filters['yearRange'] as RangeValues?;
     if (selectedYears != null) {
       final int startYear = selectedYears.start.toInt();
       final int endYear = selectedYears.end.toInt();
       filteredAnimes = filteredAnimes.where((Anime anime) {
         final int? year = int.tryParse(anime.year);
-        if (year == null) return false; // O decide cómo manejar los años no válidos
+        if (year == null) return false; // Decide how to handle invalid years
         return year >= startYear && year <= endYear;
       }).toList();
     }
 
-    // Ordenar si es necesario
+    // Sort if necessary
     final String? selectedSortOrder = filters['sortOrder'] as String?;
     if (selectedSortOrder != null) {
       if (selectedSortOrder == 'recent') {
@@ -178,7 +209,7 @@ class AnimeListNotifier extends StateNotifier<AsyncValue<List<Anime>>> {
       }
     }
 
-    // Filtrar por estado
+    // Filter by status
     final String? selectedStatus = filters['status'] as String?;
     if (selectedStatus != null) {
       filteredAnimes = filteredAnimes.where((Anime anime) {
@@ -186,7 +217,7 @@ class AnimeListNotifier extends StateNotifier<AsyncValue<List<Anime>>> {
       }).toList();
     }
 
-    // Filtrar por búsqueda
+    // Filter by search query
     final String searchQuery = filters['searchQuery'] as String;
     if (searchQuery.isNotEmpty) {
       filteredAnimes = filteredAnimes.where((Anime anime) {
@@ -206,8 +237,7 @@ final recentAnimesProvider = Provider<AsyncValue<List<Anime>>>((ref) {
 });
 
 // MARK: - Anime Status Providers
-final animeStatusProvider =
-Provider.family<AnimeStatus, String>((ref, animeId) {
+final animeStatusProvider = Provider.family<AnimeStatus, String>((ref, animeId) {
   final box = ref.watch(userDataBoxProvider);
   if (box == null) return AnimeStatus.none;
 
@@ -251,7 +281,7 @@ class AnimeStatusNotifier extends StateNotifier<AnimeStatus> {
       await box.put('userData_$_animeId', {'status': newStatus.index});
       state = newStatus;
 
-      // Invalidar providers relacionados
+      // Invalidate related providers
       _ref.invalidate(animeStatusProvider(_animeId));
       _ref.invalidate(favoriteAnimesProvider);
     }
@@ -259,8 +289,7 @@ class AnimeStatusNotifier extends StateNotifier<AnimeStatus> {
 }
 
 // MARK: - Favorites & User Data Providers
-final favoriteAnimesProvider =
-Provider<AsyncValue<Map<String, List<Anime>>>>((ref) {
+final favoriteAnimesProvider = Provider<AsyncValue<Map<String, List<Anime>>>>((ref) {
   return ref.watch(animeListProvider).whenData((animes) {
     final box = ref.watch(userDataBoxProvider);
     if (box == null) return {'favorite': [], 'watching': [], 'completed': []};
@@ -315,12 +344,3 @@ final userStatsProvider = Provider<Map<String, int>>((ref) {
     },
   );
 });
-
-// MARK: - Initialization
-Future<void> initializeProviders(ProviderContainer container) async {
-  final animeBox = await Hive.openBox('animeBox');
-  final userDataBox = await Hive.openBox('userDataBox');
-
-  container.read(animeBoxProvider.notifier).state = animeBox;
-  container.read(userDataBoxProvider.notifier).state = userDataBox;
-}

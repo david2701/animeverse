@@ -1,37 +1,33 @@
 // lib/main.dart
+
+import 'package:animeverse/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:animeverse/providers.dart';
-import 'package:animeverse/screens/home/home_screen.dart';
-import 'package:animeverse/theme/app_theme.dart';
+import 'screens/home/home_screen.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-// Inicializar Hive y obtener las boxes
-  final boxes = await initializeHive();
-  final userDataBox = boxes[0];
-  final animeBox = boxes[1];
+  // Initialize Hive
+  await Hive.initFlutter();
+
+  // Open Hive boxes
+  final userDataBox = await Hive.openBox('userDataBox');
+  final tioAnimeBox = await Hive.openBox('tioAnimeBox');
+  final flvAnimeBox = await Hive.openBox('flvAnimeBox');
 
   runApp(
     ProviderScope(
       overrides: [
-        userDataBoxProvider.overrideWith((ref) => userDataBox),
-        animeBoxProvider.overrideWith((ref) => animeBox),
+        userDataBoxProvider.overrideWithValue(userDataBox),
+        tioAnimeBoxProvider.overrideWithValue(tioAnimeBox),
+        flvAnimeBoxProvider.overrideWithValue(flvAnimeBox),
       ],
       child: const AnimeScraperApp(),
     ),
   );
-}
-
-Future<List<Box>> initializeHive() async {
-  await Hive.initFlutter();
-
-  return await Future.wait([
-    Hive.openBox('userDataBox'),
-    Hive.openBox('animeBox'),
-  ]);
 }
 
 class AnimeScraperApp extends ConsumerWidget {
@@ -40,10 +36,12 @@ class AnimeScraperApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDarkMode = ref.watch(darkModeProvider);
-    final boxes = _verifyBoxes(ref);
 
-// Mostrar loading mientras se inicializan las boxes
-    if (!boxes) {
+    // Verify that all Hive boxes are initialized
+    final boxesInitialized = _verifyBoxes(ref);
+
+    // Show loading indicator while boxes are initializing
+    if (!boxesInitialized) {
       return const MaterialApp(
         home: Scaffold(
           body: Center(
@@ -65,7 +63,8 @@ class AnimeScraperApp extends ConsumerWidget {
 
   bool _verifyBoxes(WidgetRef ref) {
     final userDataBox = ref.watch(userDataBoxProvider);
-    final animeBox = ref.watch(animeBoxProvider);
-    return userDataBox != null && animeBox != null;
+    final tioAnimeBox = ref.watch(tioAnimeBoxProvider);
+    final flvAnimeBox = ref.watch(flvAnimeBoxProvider);
+    return userDataBox != null && tioAnimeBox != null && flvAnimeBox != null;
   }
 }
